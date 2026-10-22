@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Local workday exit-time calculator.">
+  <title>ZucchExit</title>
+  <style>
+    :root { --ink:#343434; --muted:#777; --paper:#fff; --line:#e3e3e3; --teal:#667eea; --teal-dark:#413f75; --lime:#764ba2; --yellow:#ffd901; --red:#e64c4c; --blue:#2196f3; --shadow:0 2px 8px rgba(0,0,0,.1); }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:320px; background:#ddd; color:var(--ink); font-family:"Segoe UI","Proxima Nova",sans-serif; }
+    button, select, textarea, input { font:inherit; }
+    button { cursor:pointer; }
+    .shell { width:min(960px,calc(100% - 32px)); margin:32px auto 56px; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; padding:18px 22px 13px; background:var(--paper); border-radius:8px 8px 0 0; border-bottom:2px solid var(--line); gap:16px; }
+    .brand { display:flex; align-items:center; gap:10px; }
+    .brand-logo { width:32px; height:32px; }
+    .brand h1 { font-size:20px; letter-spacing:0; margin:0; }
+    .brand p { margin:1px 0 0; color:var(--muted); font-size:12px; }
+    .language { appearance:none; border:1px solid #c0c0c0; padding:8px 31px 8px 10px; background:var(--paper); color:var(--ink); border-radius:4px; background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%); background-position:calc(100% - 13px) 14px,calc(100% - 8px) 14px; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(340px,.92fr); background:var(--paper); border-radius:0 0 8px 8px; box-shadow:var(--shadow); overflow:hidden; }
+    .input-area { padding:30px; border-right:1px solid var(--line); }
+    .result-area { padding:30px; background:#fafafa; }
+    .eyebrow { color:var(--muted); font-size:11px; font-weight:700; letter-spacing:0; text-transform:uppercase; margin:0 0 6px; }
+    h2 { margin:0; font-size:22px; letter-spacing:0; }
+    .subcopy { color:var(--muted); font-size:13px; line-height:1.55; margin:8px 0 18px; }
+    textarea { width:100%; min-height:130px; resize:vertical; border:1px solid #c0c0c0; border-radius:4px; padding:13px; background:#fff; color:var(--ink); font-family:Consolas,monospace; font-size:13px; line-height:1.5; outline-color:var(--teal); }
+    .actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+    .button { border:0; border-radius:4px; padding:9px 13px; font-weight:600; font-size:13px; background:#eee; color:var(--ink); }
+    .button.primary { background:var(--teal); color:#fff; border-color:var(--teal); }
+    .button.primary:hover { background:var(--teal-dark); }
+    .button.subtle { border:1px solid var(--teal); background:#fff; color:var(--teal); }
+    .button.icon { padding:5px 8px; color:#fff; background:var(--red); }
+    .import-feedback { display:none; margin:13px 0 0; padding:9px 11px; border:1px solid #90caf9; border-radius:6px; color:#21566e; background:#e3f2fd; font-size:12px; line-height:1.45; }
+    .punches-header { display:flex; justify-content:space-between; align-items:end; gap:8px; margin-top:27px; }
+    .punches-header h3 { margin:0; font-size:15px; }
+    .punches { margin-top:10px; border-top:1px solid var(--line); }
+    .punch-row { display:grid; grid-template-columns:32px 1fr 1.2fr 34px; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); }
+    .punch-number { color:var(--muted); font-family:Consolas,monospace; font-size:12px; }
+    .punch-row input, .punch-row select { min-width:0; border:1px solid #c0c0c0; border-radius:3px; padding:7px 8px; color:var(--ink); background:#fff; font-size:13px; }
+    .empty { margin:16px 0; color:var(--muted); font-size:13px; }
+    .result-card { border:1px solid var(--line); border-radius:8px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.06); padding:22px; }
+    .result-label { display:flex; align-items:center; gap:7px; margin:0; color:var(--muted); font-size:12px; font-weight:800; text-transform:uppercase; }
+    .status-dot { width:9px; height:9px; display:inline-block; border-radius:50%; background:var(--yellow); }
+    .status-dot.final { background:#35c464; }
+    .result-time { margin:10px 0 5px; color:var(--ink); font-family:Consolas,monospace; font-size:52px; font-weight:500; line-height:1; letter-spacing:0; }
+    .result-time .range { color:var(--muted); font-size:25px; }
+    .result-note { min-height:36px; color:var(--muted); font-size:13px; line-height:1.5; }
+    .countdown { display:none; margin-top:17px; padding:13px; border-radius:8px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:#fff; }
+    .countdown span { display:block; opacity:.8; font-size:11px; font-weight:700; text-transform:uppercase; }
+    .countdown strong { display:block; margin-top:4px; font-family:Consolas,monospace; font-size:24px; font-weight:500; }
+    .messages { margin-top:27px; }
+    .message { display:flex; gap:9px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--line); color:#5d5d5d; font-size:13px; line-height:1.45; }
+    .message-dot { width:9px; height:9px; margin-top:5px; flex:0 0 auto; border-radius:50%; background:var(--blue); }
+    .message.warn .message-dot { background:var(--yellow); }
+    .message.error .message-dot { background:var(--red); }
+    .footer { margin:15px 0 0; color:#666; font-size:11px; text-align:right; }
+    @media (max-width:800px) { .shell { width:min(100% - 20px,620px); margin:16px auto 30px; } .workspace { grid-template-columns:1fr; } .input-area { border-right:0; border-bottom:1px solid var(--line); } .input-area,.result-area { padding:22px; } }
+    @media (max-width:420px) { .topbar { align-items:flex-start; } .result-time { font-size:43px; } .punch-row { grid-template-columns:25px 1fr 1.1fr 32px; gap:5px; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><img class="brand-logo" src="img/logo-48.png" alt="ZuccheExit"><div><h1>ZucchExit</h1></div></div>
+      <select id="language" class="language" aria-label="Language"><option value="it">Italiano</option><option value="en">English</option></select>
+    </header>
+    <section class="workspace">
+      <div class="input-area">
+        <p class="eyebrow" data-t="source">Dati di oggi</p>
+        <h2 data-t="pasteTitle">Incolla le timbrature</h2>
+        <p class="subcopy" data-t="pasteDescription">Incolla le righe copiate dalla tabella. Sono riconosciuti orari e parole come Entrata/Uscita o IN/OUT.</p>
+        <textarea id="paste" data-placeholder="pastePlaceholder" spellcheck="false"></textarea>
+        <div class="actions"><button id="import" class="button primary" type="button" data-t="import">Importa timbrature</button><button id="clear" class="button subtle" type="button" data-t="clear">Cancella</button></div>
+        <div id="import-feedback" class="import-feedback" role="status"></div>
+        <div class="punches-header"><h3 data-t="records">Timbrature</h3><button id="add" class="button" type="button" data-t="addRecord">Aggiungi riga</button></div>
+        <div id="punches" class="punches"></div>
+      </div>
+      <aside class="result-area" aria-live="polite">
+        <p class="eyebrow" data-t="calculation">Calcolo</p>
+        <div class="result-card">
+          <p class="result-label"><span id="status-dot" class="status-dot"></span><span id="result-label" data-t="exitTime">Orario di uscita</span></p>
+          <div id="result-time" class="result-time">--:--</div>
+          <div id="result-note" class="result-note" data-t="waiting">Inserisci almeno una timbratura di entrata.</div>
+          <div id="countdown" class="countdown"><span data-t="remaining">Tempo residuo</span><strong id="countdown-value">00h 00m 00s</strong></div>
+        </div>
+        <div id="messages" class="messages"></div>
+      </aside>
+    </section>
+    <p class="footer" data-t="rules">Regole: ingresso minimo 07:30, pausa minima 30 min, limite pausa 60 min.</p>
+  </main>
+  <script>
+    (function () {
+      "use strict";
+      const storageKey = "ZucchExit-web-state";
+      const translations = {
+        it: { source:"Dati di oggi", pasteTitle:"Incolla le timbrature", pasteDescription:"Incolla le righe copiate dalla tabella. Sono riconosciuti orari e parole come Entrata/Uscita o IN/OUT.", pastePlaceholder:"Esempio:\nEntrata\t08:12\nUscita\t12:35\nEntrata\t13:08", import:"Importa timbrature", clear:"Cancella", records:"Timbrature", addRecord:"Aggiungi riga", calculation:"Calcolo", exitTime:"Orario di uscita", estimatedExit:"Uscita stimata", waiting:"Inserisci almeno una timbratura di entrata.", remaining:"Tempo residuo", rules:"Regole: ingresso minimo 07:30, pausa minima 30 min, limite pausa 60 min.", direction:"Verso", time:"Orario", entry:"Entrata", exit:"Uscita", remove:"Rimuovi riga", noRecords:"Nessuna timbratura. Incolla i dati o aggiungi una riga.", imported:"Importate {count} timbrature.", inferred:"Il verso di alcune righe è stato dedotto alternando entrata e uscita: controllalo nella tabella.", noTimes:"Non ho trovato orari nel testo incollato.", before730:"L'orario di ingresso usato per il calcolo è 07:30.", lessLunch:"Hai fatto {minutes} minuti di pausa pranzo.", moreLunch:"Hai fatto {lunch} minuti di pausa pranzo. L'uscita è calcolata su 60 minuti, ma saranno conteggiati {missing} minuti di minor presenza.", rol:"L'orario di uscita è calcolato su {hours} ora/e di ROL.", lunchUsed:"L'orario di uscita è calcolato su {minutes} minuti di pausa pranzo.", estimate:"L'orario di uscita definitivo verrà mostrato dopo la pausa pranzo." },
+        en: { source:"Today's data", pasteTitle:"Paste your punches", pasteDescription:"Paste rows copied from the table. Times and words such as Entry/Exit or IN/OUT are recognised.", pastePlaceholder:"Example:\nEntry\t08:12\nExit\t12:35\nEntry\t13:08", import:"Import punches", clear:"Clear", records:"Punch records", addRecord:"Add row", calculation:"Calculation", exitTime:"Exit time", estimatedExit:"Estimated exit", waiting:"Enter at least one entry punch.", remaining:"Remaining time", rules:"Rules: earliest entry 07:30, 30 min minimum lunch, 60 min lunch cap.", direction:"Direction", time:"Time", entry:"Entry", exit:"Exit", remove:"Remove row", noRecords:"No punch records. Paste data or add a row.", imported:"Imported {count} punches.", inferred:"The direction of some rows was inferred by alternating entry and exit: check it in the table.", noTimes:"No times were found in the pasted text.", before730:"The entry time used for calculation is 07:30.", lessLunch:"Your lunch break was {minutes} minutes.", moreLunch:"Your lunch break was {lunch} minutes. Exit time is calculated on 60 minutes, but {missing} minutes of lower attendance will be counted.", rol:"Exit time is calculated with {hours} hour(s) of ROL.", lunchUsed:"Exit time is calculated with a {minutes} minute lunch break.", estimate:"Final exit time will be shown after the lunch break." }
+      };
+      let language = localStorage.getItem("ZucchExit-web-language") || (navigator.language.startsWith("it") ? "it" : "en");
+      let punches = [];
+      let timerId = null;
+      const byId = function (id) { return document.getElementById(id); };
+      const t = function (key, values) { let text = translations[language][key] || key; Object.keys(values || {}).forEach(function (name) { text = text.replace("{" + name + "}", values[name]); }); return text; };
+      const timeToMinutes = function (value) { const match = /^(\d{1,2}):(\d{2})$/.exec(value || ""); if (!match || Number(match[1]) > 23 || Number(match[2]) > 59) return null; return Number(match[1]) * 60 + Number(match[2]); };
+      const formatTime = function (minutes) { const normalized = ((minutes % 1440) + 1440) % 1440; return String(Math.floor(normalized / 60)).padStart(2, "0") + ":" + String(normalized % 60).padStart(2, "0"); };
+      const roundedQuarter = function (minutes) { const lower = Math.floor(minutes / 15) * 15; const upper = Math.ceil(minutes / 15) * 15; return lower === 0 ? upper : (minutes - lower < upper - minutes ? lower : upper); };
+      function applyLanguage() { document.documentElement.lang = language; byId("language").value = language; document.querySelectorAll("[data-t]").forEach(function (node) { node.textContent = t(node.dataset.t); }); byId("paste").placeholder = t("pastePlaceholder"); render(); }
+      function save() { localStorage.setItem(storageKey, JSON.stringify(punches)); localStorage.setItem("ZucchExit-web-language", language); }
+      function parsePasted(text) {
+        let inferred = false;
+        const records = text.split(/\r?\n/).map(function (line, index) {
+          const timeMatch = line.match(/\b([01]?\d|2[0-3]):[0-5]\d\b/);
+          if (!timeMatch) return null;
+          const textLine = line.toLowerCase();
+          let direction = null;
+          if (/\b(in|entrata|ingresso|entry)\b/.test(textLine)) direction = "IN";
+          if (/\b(out|uscita|exit)\b/.test(textLine)) direction = "OUT";
+          return { time: timeMatch[0].padStart(5, "0"), direction: direction, order: index };
+        }).filter(Boolean);
+        records.forEach(function (record, index) { if (!record.direction) { record.direction = index % 2 === 0 ? "IN" : "OUT"; inferred = true; } });
+        return { records: records, inferred: inferred };
+      }
+      function addPunch(punch) { punches.push(punch || { direction:"IN", time:"" }); render(); }
+      function renderPunches() {
+        const root = byId("punches"); root.replaceChildren();
+        if (!punches.length) { const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = t("noRecords"); root.append(empty); return; }
+        punches.forEach(function (punch, index) {
+          const row = document.createElement("div"); row.className = "punch-row";
+          const number = document.createElement("span"); number.className = "punch-number"; number.textContent = String(index + 1).padStart(2, "0");
+          const direction = document.createElement("select"); direction.setAttribute("aria-label", t("direction")); [["IN",t("entry")],["OUT",t("exit")]].forEach(function (item) { const option = new Option(item[1],item[0]); option.selected = punch.direction === item[0]; direction.add(option); }); direction.addEventListener("change", function () { punches[index].direction = direction.value; changed(); });
+          const time = document.createElement("input"); time.type = "time"; time.value = punch.time; time.setAttribute("aria-label", t("time")); time.addEventListener("input", function () { punches[index].time = time.value; changed(); });
+          const remove = document.createElement("button"); remove.className = "button icon"; remove.type = "button"; remove.title = t("remove"); remove.setAttribute("aria-label", t("remove")); remove.textContent = "x"; remove.addEventListener("click", function () { punches.splice(index,1); changed(); });
+          row.append(number,direction,time,remove); root.append(row);
+        });
+      }
+      function calculate() {
+        const normalized = punches.map(function (punch, index) { return { direction:punch.direction, minutes:timeToMinutes(punch.time), index:index }; }).filter(function (punch) { return punch.minutes !== null; });
+        const messages = [];
+        const firstIn = normalized.find(function (punch) { return punch.direction === "IN"; });
+        if (!firstIn) return { messages:messages };
+        let start = firstIn.minutes;
+        if (start < 450) { start = 450; messages.push({ type:"warn", text:t("before730") }); }
+        const lunchOut = normalized.slice(firstIn.index).find(function (punch) { return punch.direction === "OUT" && punch.minutes >= 720; });
+        let lunchIn = null;
+        if (lunchOut) lunchIn = normalized.slice(lunchOut.index + 1).find(function (punch) { return punch.direction === "IN"; });
+        const rol = start <= 600 ? 0 : Math.ceil((start - 600) / 60);
+        if (rol > 0) messages.push({ type:"warn", text:t("rol",{hours:rol}) });
+        const workMinutes = (8 - rol) * 60;
+        if (lunchOut && lunchIn) {
+          let lunch = lunchIn.minutes - lunchOut.minutes;
+          if (lunch > 60) { const missing = roundedQuarter(lunch - 60); messages.push({type:"error",text:t("moreLunch",{lunch:lunch,missing:missing})}); lunch = 60; }
+          if (lunch < 30) { messages.push({type:"warn",text:t("lessLunch",{minutes:lunch})}); lunch = 30; }
+          messages.push({type:"info",text:t("lunchUsed",{minutes:lunch})});
+          return { exit:start + workMinutes + lunch, estimated:false, messages:messages };
+        }
+        if (start <= 720) { messages.push({type:"warn",text:t("estimate")}); return { exit:start + workMinutes + 30, estimated:true, messages:messages }; }
+        return { exit:start + workMinutes, estimated:false, messages:messages };
+      }
+      function renderResult() {
+        const result = calculate(); const time = byId("result-time"); const note = byId("result-note"); const label = byId("result-label"); const dot = byId("status-dot"); const countdown = byId("countdown"); const messages = byId("messages"); messages.replaceChildren(); clearInterval(timerId); timerId = null;
+        if (result.exit === undefined) { time.textContent = "--:--"; note.textContent = t("waiting"); label.textContent = t("exitTime"); dot.classList.remove("final"); countdown.style.display = "none"; return; }
+        label.textContent = result.estimated ? t("estimatedExit") : t("exitTime"); dot.classList.toggle("final",!result.estimated);
+        time.replaceChildren(document.createTextNode(formatTime(result.exit)));
+        if (result.estimated) { const range = document.createElement("span"); range.className = "range"; range.textContent = " - " + formatTime(result.exit + 30); time.append(range); note.textContent = t("estimate"); countdown.style.display = "none"; }
+        else { note.textContent = ""; countdown.style.display = "block"; const target = new Date(); target.setHours(Math.floor(result.exit / 60), result.exit % 60, 0, 0); const updateCountdown = function () { const diff = target.getTime() - Date.now(); const value = Math.max(0,diff); const hours = Math.floor(value / 3600000); const minutes = Math.floor(value % 3600000 / 60000); const seconds = Math.floor(value % 60000 / 1000); byId("countdown-value").textContent = String(hours).padStart(2,"0") + "h " + String(minutes).padStart(2,"0") + "m " + String(seconds).padStart(2,"0") + "s"; if (diff <= 0) clearInterval(timerId); }; updateCountdown(); timerId = setInterval(updateCountdown,1000); }
+        result.messages.forEach(function (message) { const item = document.createElement("div"); item.className = "message " + message.type; const bullet = document.createElement("span"); bullet.className = "message-dot"; const copy = document.createElement("span"); copy.textContent = message.text; item.append(bullet,copy); messages.append(item); });
+      }
+      function render() { renderPunches(); renderResult(); }
+      function changed() { save(); render(); }
+      byId("import").addEventListener("click",function () { const result = parsePasted(byId("paste").value); const feedback = byId("import-feedback"); feedback.style.display = "block"; if (!result.records.length) { feedback.textContent = t("noTimes"); return; } punches = result.records.map(function (record) { return {direction:record.direction,time:record.time}; }); feedback.textContent = t("imported",{count:punches.length}) + (result.inferred ? " " + t("inferred") : ""); changed(); });
+      byId("clear").addEventListener("click",function () { punches = []; byId("paste").value = ""; byId("import-feedback").style.display = "none"; changed(); });
+      byId("add").addEventListener("click",function () { addPunch(); save(); });
+      byId("language").addEventListener("change",function () { language = this.value; localStorage.setItem("ZucchExit-web-language",language); applyLanguage(); });
+      try { const stored = JSON.parse(localStorage.getItem(storageKey)); if (Array.isArray(stored)) punches = stored.filter(function (item) { return item && (item.direction === "IN" || item.direction === "OUT"); }); } catch (error) { punches = []; }
+      applyLanguage();
+    }());
+  </script>
+</body>
+</html>
